@@ -42,6 +42,35 @@ resource "aws_s3_bucket_public_access_block" "S3BucketPublicAccess" {
     ]
 }
 
+data "aws_lambda_function" "LambdaFilter" {
+    for_each = {
+        for Index, Bucket in coalesce(var.Buckets, {}) : Index => Bucket
+        if Bucket != null && Bucket.LambdaNameEventNotification != null
+    }
+    function_name = each.value.LambdaNameEventNotification
+    depends_on = [
+        aws_s3_bucket.S3Bucket
+    ]
+}
+
+resource "aws_s3_bucket_notification" "S3BucketNotification" {
+    for_each = {
+        for Index, Bucket in coalesce(var.Buckets, {}) : Index => Bucket
+        if Bucket != null && Bucket.LambdaNameEventNotification != null
+    }
+    bucket = aws_s3_bucket.S3Bucket[each.key].id
+    lambda_function {
+        lambda_function_arn = data.aws_lambda_function.LambdaFilter[each.key].arn
+        events              = ["s3:ObjectCreated:*"]
+        filter_prefix       = "uploads/"
+        filter_suffix       = ".zip"
+    }
+    depends_on = [
+        aws_s3_bucket.S3Bucket,
+        data.aws_lambda_function.LambdaFilter
+    ]
+}
+
 data "aws_s3_bucket" "S3BucketFilter" {
     for_each = {
         for Index, Upload in coalesce(var.Uploads, {}) : Index => Upload
@@ -49,7 +78,8 @@ data "aws_s3_bucket" "S3BucketFilter" {
     }
     bucket = each.value.BucketName
     depends_on = [
-        aws_s3_bucket.S3Bucket        
+        aws_s3_bucket.S3Bucket,
+        aws_s3_bucket_notification.S3BucketNotification
     ]
 }
 
@@ -63,28 +93,7 @@ resource "aws_s3_object" "Upload" {
     source     = each.value.Source
     depends_on = [
         aws_s3_bucket.S3Bucket,
-        data.aws_s3_bucket.S3BucketFilter
+        data.aws_s3_bucket.S3BucketFilter,
+        aws_s3_bucket_notification.S3BucketNotification
     ]
-}
-
-data "aws_lambda_function" "LambdaFilter" {
-    for_each = {
-        for Index, Bucket in coalesce(var.Buckets, {}) : Index => Bucket
-        if Bucket != null && Bucket.LambdaNameEventNotification != null
-    }
-    function_name = each.value.LambdaNameEventNotification
-}
-
-resource "aws_s3_bucket_notification" "bucket_notification" {
-    for_each = {
-        for Index, Bucket in coalesce(var.Buckets, {}) : Index => Bucket
-        if Bucket != null && Bucket.LambdaNameEventNotification != null
-    }
-    bucket = aws_s3_bucket.S3Bucket[each.key].id
-    lambda_function {
-        lambda_function_arn = data.aws_lambda_function.LambdaFilter[each.key].arn
-        events              = ["s3:ObjectCreated:*"]
-        filter_prefix       = "uploads/"
-        filter_suffix       = ".zip"
-    }
 }
