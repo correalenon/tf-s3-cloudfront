@@ -28,14 +28,6 @@ resource "aws_lambda_function" "LambdaFunction" {
     ]
 }
 
-data "aws_s3_bucket" "S3BucketFilter" {
-    for_each = {
-        for Index, Lambda in coalesce(var.Lambdas, {}) : Index => Lambda
-        if Lambda != null && Lambda.PermissionsBucketName != null
-    }
-    bucket = each.value.PermissionsBucketName
-}
-
 resource "aws_lambda_permission" "LambdaPermission" {
     for_each = {
         for Index, Lambda in coalesce(var.Lambdas, {}) : Index => Lambda
@@ -45,8 +37,5 @@ resource "aws_lambda_permission" "LambdaPermission" {
     action = each.value.PermissionsActionS3
     function_name = aws_lambda_function.LambdaFunction[each.key].function_name
     principal = each.value.PermissionsPrincipalS3
-    source_arn = data.aws_s3_bucket.S3BucketFilter[each.key].arn
-    depends_on = [
-        data.aws_s3_bucket.S3BucketFilter
-    ]
+    source_arn = "arn:aws:s3:::${each.value.PermissionsBucketName}"
 }
