@@ -123,9 +123,9 @@ resource "aws_route53_record" "RecordCreation" {
     if Distribuition != null
   }
   zone_id = var.ZoneID
-  name = aws_cloudfront_distribution.CloudFrontS3Distribuition[each.key].domain_name
+  name = one(each.value.Aliases[*])
   type = "CNAME"
-  records = aws_cloudfront_distribution.CloudFrontS3Distribuition[each.key].aliases
+  records = [aws_cloudfront_distribution.CloudFrontS3Distribuition[each.key].domain_name]
   ttl = "300"
   depends_on = [
     aws_cloudfront_distribution.CloudFrontS3Distribuition
