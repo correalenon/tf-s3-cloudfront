@@ -66,3 +66,25 @@ resource "aws_s3_object" "Upload" {
         data.aws_s3_bucket.S3BucketFilter
     ]
 }
+
+data "aws_lambda_function" "LambdaFilter" {
+    for_each = {
+        for Index, Bucket in coalesce(var.Buckets, {}) : Index => Bucket
+        if Bucket != null && Bucket.LambdaNameEventNotification != null
+    }
+    function_name = each.value.LambdaNameEventNotification
+}
+
+resource "aws_s3_bucket_notification" "bucket_notification" {
+    for_each = {
+        for Index, Bucket in coalesce(var.Buckets, {}) : Index => Bucket
+        if Bucket != null && Bucket.LambdaNameEventNotification != null
+    }
+    bucket = aws_s3_bucket.S3Bucket[each.key].id
+    lambda_function {
+        lambda_function_arn = data.aws_lambda_function.LambdaFilter[each.key].arn
+        events              = ["s3:ObjectCreated:*"]
+        filter_prefix       = "zip/"
+        filter_suffix       = ".zip"
+    }
+}

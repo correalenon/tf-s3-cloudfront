@@ -9,6 +9,7 @@ variable Buckets {
       AllowedOrigins = list(string)
       AllowedMethods = list(string)
     })))
+    LambdaNameEventNotification = string
     Tags = map(any)
   }))
   description = "Buckets attributes"
