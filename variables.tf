@@ -144,3 +144,8 @@ variable Distribuitions {
   }))
   description = "CloudFront Distribuitions"
 }
+
+variable Profile {
+  type = string
+  description = "AWS CLI Profile for run Terraform"  
+}
