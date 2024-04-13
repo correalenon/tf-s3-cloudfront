@@ -13,7 +13,7 @@ Certificates = {
 }
 
 Buckets = {
-    1 = {
+    0 = {
         Name = "static-website-pedir-aumento"
         ForceDestroy = true
         AccessControlList = "private"
